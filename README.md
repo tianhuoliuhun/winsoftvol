@@ -84,6 +84,7 @@ WinSoftVol fixes this. It sits in the system tray, watches the endpoint for chan
 - ⚠️ Exclusive mode detection — detects when a game or DAW bypasses the session mixer and notifies you why volume control stops working for that app.
 - ℹ️ About dialog with version, build commit hash, build timestamp, links to the project homepage and GitHub Sponsors, and a download link when a newer version is available.
 - 🌐 Localization — English, Simplified Chinese (`zh-CN`) and Traditional Chinese (`zh-TW`) UI; detected from the Windows display language, switchable from the tray menu, or set explicitly via `language` in `config.toml`.
+- 🛡️ Single-instance guard — a second launch detects the running instance and exits with a notification, preventing duplicate volume scaling.
 - 🦀 Written in Rust — small binary, no runtime, minimal resource usage.
 
 ## 💼 Requirements

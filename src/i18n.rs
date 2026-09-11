@@ -155,6 +155,7 @@ pub struct Strings {
     pub notif_device_not_found: &'static str,
     pub notif_title_update: &'static str,
     pub notif_update: &'static str,
+    pub notif_already_running: &'static str,
 }
 
 impl Strings {
@@ -255,6 +256,7 @@ static EN: Strings = Strings {
     notif_device_not_found: "Pinned device \"{name}\" not found — using default audio device.",
     notif_title_update: "WinSoftVol Update Available",
     notif_update: "{tag} is ready — click to open release page",
+    notif_already_running: "WinSoftVol is already running.",
 };
 
 static ZH_CN: Strings = Strings {
@@ -286,6 +288,7 @@ static ZH_CN: Strings = Strings {
     notif_device_not_found: "未找到绑定的设备 \"{name}\" — 将使用默认音频设备。",
     notif_title_update: "WinSoftVol 有可用更新",
     notif_update: "{tag} 已发布 — 点击打开发布页面",
+    notif_already_running: "WinSoftVol 已在运行。",
 };
 
 static ZH_TW: Strings = Strings {
@@ -317,6 +320,7 @@ static ZH_TW: Strings = Strings {
     notif_device_not_found: "找不到綁定的裝置 \"{name}\" — 將使用預設音訊裝置。",
     notif_title_update: "WinSoftVol 有新版本可用",
     notif_update: "{tag} 已發布 — 點擊開啟發布頁面",
+    notif_already_running: "WinSoftVol 已在執行中。",
 };
 
 #[cfg(test)]
@@ -344,6 +348,7 @@ mod tests {
             assert!(!s.about_body.is_empty());
             assert!(!s.notif_reconnected.is_empty());
             assert!(!s.notif_device_not_found.is_empty());
+            assert!(!s.notif_already_running.is_empty());
         }
     }
 

@@ -10,6 +10,8 @@ mod config;
 mod i18n;
 #[cfg(windows)]
 mod notification;
+#[cfg(windows)]
+mod single_instance;
 mod tray;
 #[cfg(windows)]
 mod updater;
@@ -108,11 +110,21 @@ fn run() -> anyhow::Result<()> {
 
     notification::register_aumid();
 
+    // Load the config first so the active language is available for early
+    // notifications (such as the single-instance warning below).
+    let initial_cfg = config::Config::load();
+    i18n::set(i18n::resolve(initial_cfg.general.language.as_deref()));
+
+    // Only one instance may run at a time: two instances would both apply
+    // endpoint volume changes to the session volumes, doubling the scaling.
+    if !single_instance::acquire() {
+        notification::show_already_running();
+        return Ok(());
+    }
+
     let update_state: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
     updater::spawn_update_checker(Arc::clone(&update_state));
 
-    let initial_cfg = config::Config::load();
-    i18n::set(i18n::resolve(initial_cfg.general.language.as_deref()));
     let init_dev_cfg = active_device_config(&initial_cfg);
     let softvol_flag = Arc::new(AtomicBool::new(init_dev_cfg.force_sw_volume));
     let cap_flag = Arc::new(AtomicU32::new(init_dev_cfg.cap_percent));

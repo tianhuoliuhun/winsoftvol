@@ -24,6 +24,12 @@ pub fn show_device_reconnected() {
     let _ = toast(TITLE_APP, i18n::strings().notif_reconnected);
 }
 
+/// Notify the user that another instance is already running; the caller is
+/// expected to exit afterwards.
+pub fn show_already_running() {
+    let _ = toast(TITLE_APP, i18n::strings().notif_already_running);
+}
+
 pub fn show_config_error(msg: &str) {
     let s = i18n::strings();
     let truncated: String = msg.chars().take(200).collect();
