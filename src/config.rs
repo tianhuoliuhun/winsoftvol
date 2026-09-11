@@ -59,6 +59,10 @@ pub struct GeneralConfig {
     pub startup_volume: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pin_device: Option<String>,
+    /// When set, the bridge only runs while the target device is in this list.
+    /// `None` means every device is allowed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub devices: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
 }
@@ -75,6 +79,7 @@ impl Default for GeneralConfig {
             night_enabled: true,
             startup_volume: None,
             pin_device: None,
+            devices: None,
             language: None,
         }
     }
@@ -97,6 +102,14 @@ impl GeneralConfig {
         self.night_cap = self.night_cap.clamp(10, 100);
         if let Some(v) = &mut self.startup_volume {
             *v = (*v).clamp(0, 100);
+        }
+        if let Some(devices) = &mut self.devices {
+            let mut seen = std::collections::HashSet::new();
+            *devices = devices
+                .iter()
+                .map(|d| d.trim().to_string())
+                .filter(|d| !d.is_empty() && seen.insert(d.clone()))
+                .collect();
         }
     }
 
@@ -135,6 +148,14 @@ impl Config {
     #[allow(dead_code)]
     pub fn resolve_device<'a>(&'a self, device_id: &str) -> &'a DeviceConfig {
         self.device.get(device_id).unwrap_or(&self.default)
+    }
+
+    /// Whether the bridge is allowed to run for the given device name.
+    pub fn device_allowed(&self, name: &str) -> bool {
+        match &self.general.devices {
+            None => true,
+            Some(list) => list.iter().any(|d| d == name),
+        }
     }
 
     fn sanitize_devices(&mut self) {
@@ -242,6 +263,7 @@ impl Config {
                 night_enabled: true,
                 startup_volume: None,
                 pin_device: None,
+                devices: None,
                 language: None,
             },
             default: DeviceConfig {
@@ -516,6 +538,31 @@ cap_percent = 60
     fn language_parses_from_toml() {
         let cfg: Config = toml::from_str("[general]\nlanguage = \"zh-TW\"\n").unwrap();
         assert_eq!(cfg.general.language.as_deref(), Some("zh-TW"));
+    }
+
+    #[test]
+    fn devices_missing_means_all_allowed() {
+        let cfg = Config::default();
+        assert!(cfg.device_allowed("anything"));
+    }
+
+    #[test]
+    fn devices_restrict_allowed_set() {
+        let cfg: Config = toml::from_str("[general]\ndevices = [\"A\", \"B\"]\n").unwrap();
+        assert!(cfg.device_allowed("A"));
+        assert!(cfg.device_allowed("B"));
+        assert!(!cfg.device_allowed("C"));
+    }
+
+    #[test]
+    fn devices_sanitize_trims_and_deduplicates() {
+        let mut cfg: Config =
+            toml::from_str("[general]\ndevices = [\" A \", \"A\", \"\", \"B\"]\n").unwrap();
+        cfg.sanitize_devices();
+        assert_eq!(
+            cfg.general.devices,
+            Some(vec!["A".to_string(), "B".to_string()])
+        );
     }
 
     #[test]

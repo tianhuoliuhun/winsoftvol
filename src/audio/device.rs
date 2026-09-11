@@ -65,6 +65,42 @@ pub fn get_default_device() -> Result<IMMDevice> {
     unsafe { enumerator.GetDefaultAudioEndpoint(eRender, eConsole) }
 }
 
+/// Friendly names of all active render (output) endpoints.
+pub fn list_output_device_names() -> Vec<String> {
+    let mut names = Vec::new();
+    let enumerator: IMMDeviceEnumerator =
+        match unsafe { CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL) } {
+            Ok(e) => e,
+            Err(_) => return names,
+        };
+    let collection =
+        match unsafe { enumerator.EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE) } {
+            Ok(c) => c,
+            Err(_) => return names,
+        };
+    let count = unsafe { collection.GetCount().unwrap_or(0) };
+    for i in 0..count {
+        if let Ok(device) = unsafe { collection.Item(i) } {
+            if let Some(name) = device_friendly_name(&device) {
+                names.push(name);
+            }
+        }
+    }
+    names
+}
+
+/// Friendly name of the device the bridge would attach to: the pinned device
+/// when set, otherwise the current default render endpoint.
+pub fn target_device_name(pin_device: Option<&str>) -> Option<String> {
+    match pin_device {
+        Some(name) => {
+            let device = get_device_by_name(name)?;
+            device_friendly_name(&device)
+        }
+        None => device_friendly_name(&get_default_device().ok()?),
+    }
+}
+
 pub struct DeviceWatcher {
     enumerator: IMMDeviceEnumerator,
     _client: IMMNotificationClient,

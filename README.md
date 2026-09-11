@@ -85,6 +85,7 @@ WinSoftVol fixes this. It sits in the system tray, watches the endpoint for chan
 - ℹ️ About dialog with version, build commit hash, build timestamp, links to the project homepage and GitHub Sponsors, and a download link when a newer version is available.
 - 🌐 Localization — English, Simplified Chinese (`zh-CN`) and Traditional Chinese (`zh-TW`) UI; detected from the Windows display language, switchable from the tray menu, or set explicitly via `language` in `config.toml`.
 - 🛡️ Single-instance guard — a second launch detects the running instance and exits with a notification, preventing duplicate volume scaling.
+- 🎛️ Device allow list — choose which output devices WinSoftVol applies to from the tray menu (multi-select); unlisted devices keep their native volume behaviour.
 - 🦀 Written in Rust — small binary, no runtime, minimal resource usage.
 
 ## 💼 Requirements
@@ -110,6 +111,7 @@ Right-click the tray icon to open the menu.
 | Force software volume    | Routes all volume control through the session mixer; disables hardware attenuation on capable devices                         |
 | Night mode               | Enables or disables the scheduled cap reduction; saved to config immediately                                                  |
 | Language                 | Switches the UI language (English / 简体中文 / 繁體中文) at runtime; saved to config immediately                                |
+| Devices                  | Multi-select allow list of output devices the bridge applies to; saved to config immediately                                  |
 | Max volume               | Sets a ceiling on output — presets are configurable in `config.toml`; the slider still covers 0–100% but is scaled to the cap |
 | Startup volume           | Sets the volume applied on the next launch (Off = leave unchanged); saved to config immediately                               |
 | Quit WinSoftVol          | Exits cleanly                                                                                                                 |
@@ -174,6 +176,7 @@ cap_presets          = [100, 80, 60, 40]   # presets shown in tray Max volume su
 scroll_step_percent  = 2                   # % per scroll notch (1–20)
 startup_volume       = 50                  # set to 50% on launch; omit to leave unchanged
 pin_device           = "Speakers (USB Audio Device)"  # omit to use Windows default device
+devices              = ["Speakers (USB Audio Device)"]  # devices the bridge applies to; omit for all devices
 language             = "zh-CN"             # UI language: "en", "zh-CN" or "zh-TW"; omit to auto-detect (also switchable from the tray menu)
 
 # Night mode: lower cap automatically on a schedule
@@ -199,6 +202,7 @@ cap_percent     = 60
 | `general.scroll_step_percent` | `2` | Volume change per scroll notch in % (1–20) |
 | `general.startup_volume` | _(absent)_ | Volume to apply on each launch in % (0–100); omit to leave unchanged |
 | `general.pin_device` | _(absent)_ | Friendly name of device to target; omit to use Windows default |
+| `general.devices` | _(absent)_ | Allow list of output devices the bridge applies to (multi-select in the tray menu); omit to apply to every device |
 | `general.language` | _(absent)_ | UI language: `en`, `zh-CN` or `zh-TW`; omit to auto-detect from the Windows display language. Also switchable from the tray menu; changes apply immediately |
 | `general.night_start` | _(absent)_ | Night mode start time (HH:MM); both `night_start` and `night_end` required |
 | `general.night_end` | _(absent)_ | Night mode end time (HH:MM); wraps midnight (e.g. 22:00 → 07:00) |

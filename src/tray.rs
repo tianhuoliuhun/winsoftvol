@@ -14,6 +14,7 @@ pub struct Tray {
     pub volcap_ids: Vec<(MenuId, u32)>,
     pub startup_vol_ids: Vec<(MenuId, Option<u32>)>,
     pub lang_ids: Vec<(MenuId, i18n::Lang)>,
+    pub device_ids: Vec<(MenuId, String)>,
     about_item: MenuItem,
     autostart_item: CheckMenuItem,
     softvol_item: CheckMenuItem,
@@ -21,9 +22,11 @@ pub struct Tray {
     volcap_submenu: Submenu,
     sv_submenu: Submenu,
     lang_submenu: Submenu,
+    devices_submenu: Submenu,
     volcap_items: Vec<CheckMenuItem>,
     startup_vol_items: Vec<CheckMenuItem>,
     lang_items: Vec<CheckMenuItem>,
+    device_items: Vec<CheckMenuItem>,
     quit_item: MenuItem,
     pub quit_id: MenuId,
 }
@@ -35,6 +38,7 @@ pub fn build_tray(
     volcap_percent: u32,
     cap_presets: &[u32],
     startup_volume: Option<u32>,
+    devices: &[(String, bool)],
 ) -> anyhow::Result<Tray> {
     let s = i18n::strings();
     let about_item = MenuItem::new(s.menu_about, true, None);
@@ -90,6 +94,18 @@ pub fn build_tray(
     let lang_dyn: Vec<&dyn IsMenuItem> = lang_items.iter().map(|i| i as &dyn IsMenuItem).collect();
     let lang_submenu = Submenu::with_items(s.menu_language, true, &lang_dyn)?;
 
+    // Devices submenu — multi-select allow list of output devices
+    let mut device_items: Vec<CheckMenuItem> = Vec::new();
+    let mut device_ids: Vec<(MenuId, String)> = Vec::new();
+    for (name, checked) in devices {
+        let item = CheckMenuItem::new(name, true, *checked, None);
+        device_ids.push((item.id().clone(), name.clone()));
+        device_items.push(item);
+    }
+    let device_dyn: Vec<&dyn IsMenuItem> =
+        device_items.iter().map(|i| i as &dyn IsMenuItem).collect();
+    let devices_submenu = Submenu::with_items(s.menu_devices, true, &device_dyn)?;
+
     let menu = Menu::new();
     menu.append(&about_item)?;
     menu.append(&PredefinedMenuItem::separator())?;
@@ -97,6 +113,7 @@ pub fn build_tray(
     menu.append(&softvol_item)?;
     menu.append(&night_item)?;
     menu.append(&lang_submenu)?;
+    menu.append(&devices_submenu)?;
     menu.append(&volcap_submenu)?;
     menu.append(&sv_submenu)?;
     menu.append(&PredefinedMenuItem::separator())?;
@@ -122,6 +139,7 @@ pub fn build_tray(
         volcap_ids,
         startup_vol_ids,
         lang_ids,
+        device_ids,
         about_item,
         autostart_item,
         softvol_item,
@@ -129,9 +147,11 @@ pub fn build_tray(
         volcap_submenu,
         sv_submenu,
         lang_submenu,
+        devices_submenu,
         volcap_items,
         startup_vol_items,
         lang_items,
+        device_items,
         quit_item,
         quit_id,
     })
@@ -182,10 +202,26 @@ impl Tray {
         self.volcap_submenu.set_text(s.menu_volcap);
         self.sv_submenu.set_text(s.menu_startup_vol);
         self.lang_submenu.set_text(s.menu_language);
+        self.devices_submenu.set_text(s.menu_devices);
         self.quit_item.set_text(s.menu_quit);
         let active = i18n::lang();
         for (item, (_, lang)) in self.lang_items.iter().zip(self.lang_ids.iter()) {
             item.set_checked(*lang == active);
+        }
+    }
+
+    /// Rebuild the device submenu from the current output device list.
+    pub fn set_devices(&mut self, devices: &[(String, bool)]) {
+        for item in self.device_items.drain(..) {
+            let _ = self.devices_submenu.remove(&item);
+        }
+        self.device_ids.clear();
+        for (name, checked) in devices {
+            let item = CheckMenuItem::new(name, true, *checked, None);
+            if self.devices_submenu.append(&item).is_ok() {
+                self.device_ids.push((item.id().clone(), name.clone()));
+                self.device_items.push(item);
+            }
         }
     }
 

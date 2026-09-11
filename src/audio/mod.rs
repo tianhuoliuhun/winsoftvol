@@ -4,7 +4,7 @@ mod endpoint_cb;
 mod session_cb;
 pub mod session_mgr;
 
-pub use device::DeviceWatcher;
+pub use device::{list_output_device_names, target_device_name, DeviceWatcher};
 use device::{get_default_device, get_device_by_name};
 use endpoint_cb::EndpointVolumeCallback;
 use session_cb::SessionNotificationHandler;

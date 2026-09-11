@@ -132,6 +132,7 @@ pub struct Strings {
     pub menu_startup_vol: &'static str,
     pub menu_off: &'static str,
     pub menu_language: &'static str,
+    pub menu_devices: &'static str,
     pub menu_quit: &'static str,
 
     // Tray tooltip
@@ -236,6 +237,7 @@ static EN: Strings = Strings {
     menu_startup_vol: "Startup volume",
     menu_off: "Off",
     menu_language: "Language",
+    menu_devices: "Devices",
     menu_quit: "Quit WinSoftVol",
 
     tooltip_active: "WinSoftVol — active",
@@ -268,6 +270,7 @@ static ZH_CN: Strings = Strings {
     menu_startup_vol: "启动音量",
     menu_off: "关闭",
     menu_language: "语言",
+    menu_devices: "设备",
     menu_quit: "退出 WinSoftVol",
 
     tooltip_active: "WinSoftVol — 运行中",
@@ -300,6 +303,7 @@ static ZH_TW: Strings = Strings {
     menu_startup_vol: "啟動音量",
     menu_off: "關閉",
     menu_language: "語言",
+    menu_devices: "裝置",
     menu_quit: "結束 WinSoftVol",
 
     tooltip_active: "WinSoftVol — 執行中",
@@ -345,6 +349,7 @@ mod tests {
             assert!(!s.menu_about.is_empty());
             assert!(!s.menu_softvol.is_empty());
             assert!(!s.menu_language.is_empty());
+            assert!(!s.menu_devices.is_empty());
             assert!(!s.about_body.is_empty());
             assert!(!s.notif_reconnected.is_empty());
             assert!(!s.notif_device_not_found.is_empty());
