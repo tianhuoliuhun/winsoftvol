@@ -275,6 +275,14 @@ fn run() -> anyhow::Result<()> {
                                 tray_state.set_volcap(dev_cfg.cap_percent);
                                 tray_state.set_night(new_cfg.general.night_enabled);
                                 tray_state.set_startup_vol(new_cfg.general.startup_volume);
+                                // Apply a language change coming from the config file.
+                                let new_lang =
+                                    i18n::resolve(new_cfg.general.language.as_deref());
+                                if new_lang != i18n::lang() {
+                                    i18n::set(new_lang);
+                                    tray_state.apply_language();
+                                    last_display = None;
+                                }
                                 in_night_mode = false;
                                 let old_autostart = cfg_state.read().unwrap().general.autostart;
                                 if new_cfg.general.autostart != old_autostart {
@@ -382,20 +390,40 @@ fn run() -> anyhow::Result<()> {
                 }
             } else {
                 let mut handled = false;
-                for (id, pct) in &tray_state.volcap_ids {
+                // Language selection: switch immediately and persist the choice.
+                for (id, lang) in &tray_state.lang_ids {
                     if event.id() == id {
-                        cap_flag.store(*pct, Ordering::Relaxed);
-                        if let Some(ref b) = bridge {
-                            let _ = b.apply_cap();
+                        if *lang != i18n::lang() {
+                            i18n::set(*lang);
+                            {
+                                let mut cfg = cfg_state.write().unwrap();
+                                cfg.general.language = Some(lang.code().to_string());
+                                let _ = cfg.save();
+                            }
+                            tray_state.apply_language();
+                            // Force the tooltip to be regenerated in the new language.
+                            last_display = None;
                         }
-                        {
-                            let mut cfg = cfg_state.write().unwrap();
-                            cfg.default.cap_percent = *pct;
-                            let _ = cfg.save();
-                        }
-                        tray_state.set_volcap(*pct);
                         handled = true;
                         break;
+                    }
+                }
+                if !handled {
+                    for (id, pct) in &tray_state.volcap_ids {
+                        if event.id() == id {
+                            cap_flag.store(*pct, Ordering::Relaxed);
+                            if let Some(ref b) = bridge {
+                                let _ = b.apply_cap();
+                            }
+                            {
+                                let mut cfg = cfg_state.write().unwrap();
+                                cfg.default.cap_percent = *pct;
+                                let _ = cfg.save();
+                            }
+                            tray_state.set_volcap(*pct);
+                            handled = true;
+                            break;
+                        }
                     }
                 }
                 if !handled {

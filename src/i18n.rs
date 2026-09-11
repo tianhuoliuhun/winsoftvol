@@ -73,6 +73,27 @@ impl Lang {
             _ => Lang::En,
         }
     }
+
+    /// Canonical code used in config.toml (`en`, `zh-CN`, `zh-TW`).
+    pub fn code(self) -> &'static str {
+        match self {
+            Lang::En => "en",
+            Lang::ZhCn => "zh-CN",
+            Lang::ZhTw => "zh-TW",
+        }
+    }
+
+    /// Language name shown in its own language.
+    pub fn native_name(self) -> &'static str {
+        match self {
+            Lang::En => "English",
+            Lang::ZhCn => "简体中文",
+            Lang::ZhTw => "繁體中文",
+        }
+    }
+
+    /// All languages selectable in the UI, in display order.
+    pub const ALL: [Lang; 3] = [Lang::En, Lang::ZhCn, Lang::ZhTw];
 }
 
 /// Store the active language for this process.
@@ -110,6 +131,7 @@ pub struct Strings {
     pub menu_volcap: &'static str,
     pub menu_startup_vol: &'static str,
     pub menu_off: &'static str,
+    pub menu_language: &'static str,
     pub menu_quit: &'static str,
 
     // Tray tooltip
@@ -212,6 +234,7 @@ static EN: Strings = Strings {
     menu_volcap: "Max volume",
     menu_startup_vol: "Startup volume",
     menu_off: "Off",
+    menu_language: "Language",
     menu_quit: "Quit WinSoftVol",
 
     tooltip_active: "WinSoftVol — active",
@@ -242,6 +265,7 @@ static ZH_CN: Strings = Strings {
     menu_volcap: "音量上限",
     menu_startup_vol: "启动音量",
     menu_off: "关闭",
+    menu_language: "语言",
     menu_quit: "退出 WinSoftVol",
 
     tooltip_active: "WinSoftVol — 运行中",
@@ -272,6 +296,7 @@ static ZH_TW: Strings = Strings {
     menu_volcap: "音量上限",
     menu_startup_vol: "啟動音量",
     menu_off: "關閉",
+    menu_language: "語言",
     menu_quit: "結束 WinSoftVol",
 
     tooltip_active: "WinSoftVol — 執行中",
@@ -315,6 +340,7 @@ mod tests {
             let s = lang.strings();
             assert!(!s.menu_about.is_empty());
             assert!(!s.menu_softvol.is_empty());
+            assert!(!s.menu_language.is_empty());
             assert!(!s.about_body.is_empty());
             assert!(!s.notif_reconnected.is_empty());
             assert!(!s.notif_device_not_found.is_empty());
@@ -336,6 +362,14 @@ mod tests {
     fn resolve_prefers_configured_language() {
         assert_eq!(resolve(Some("zh-TW")), Lang::ZhTw);
         assert_eq!(resolve(Some("zh-CN")), Lang::ZhCn);
+    }
+
+    #[test]
+    fn code_roundtrips_through_from_code() {
+        for lang in Lang::ALL {
+            assert_eq!(Lang::from_code(lang.code()), Some(lang));
+            assert!(!lang.native_name().is_empty());
+        }
     }
 
     #[test]

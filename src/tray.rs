@@ -13,11 +13,18 @@ pub struct Tray {
     pub night_id: MenuId,
     pub volcap_ids: Vec<(MenuId, u32)>,
     pub startup_vol_ids: Vec<(MenuId, Option<u32>)>,
+    pub lang_ids: Vec<(MenuId, i18n::Lang)>,
+    about_item: MenuItem,
     autostart_item: CheckMenuItem,
     softvol_item: CheckMenuItem,
     night_item: CheckMenuItem,
+    volcap_submenu: Submenu,
+    sv_submenu: Submenu,
+    lang_submenu: Submenu,
     volcap_items: Vec<CheckMenuItem>,
     startup_vol_items: Vec<CheckMenuItem>,
+    lang_items: Vec<CheckMenuItem>,
+    quit_item: MenuItem,
     pub quit_id: MenuId,
 }
 
@@ -71,12 +78,25 @@ pub fn build_tray(
         .collect();
     let sv_submenu = Submenu::with_items(s.menu_startup_vol, true, &sv_dyn)?;
 
+    // Language submenu — one check item per language, labelled in its own language
+    let mut lang_items: Vec<CheckMenuItem> = Vec::new();
+    let mut lang_ids: Vec<(MenuId, i18n::Lang)> = Vec::new();
+    let active_lang = i18n::lang();
+    for lang in i18n::Lang::ALL {
+        let item = CheckMenuItem::new(lang.native_name(), true, lang == active_lang, None);
+        lang_ids.push((item.id().clone(), lang));
+        lang_items.push(item);
+    }
+    let lang_dyn: Vec<&dyn IsMenuItem> = lang_items.iter().map(|i| i as &dyn IsMenuItem).collect();
+    let lang_submenu = Submenu::with_items(s.menu_language, true, &lang_dyn)?;
+
     let menu = Menu::new();
     menu.append(&about_item)?;
     menu.append(&PredefinedMenuItem::separator())?;
     menu.append(&autostart_item)?;
     menu.append(&softvol_item)?;
     menu.append(&night_item)?;
+    menu.append(&lang_submenu)?;
     menu.append(&volcap_submenu)?;
     menu.append(&sv_submenu)?;
     menu.append(&PredefinedMenuItem::separator())?;
@@ -101,11 +121,18 @@ pub fn build_tray(
         night_id,
         volcap_ids,
         startup_vol_ids,
+        lang_ids,
+        about_item,
         autostart_item,
         softvol_item,
         night_item,
+        volcap_submenu,
+        sv_submenu,
+        lang_submenu,
         volcap_items,
         startup_vol_items,
+        lang_items,
+        quit_item,
         quit_id,
     })
 }
@@ -145,6 +172,23 @@ pub fn render_volume_icon(volume: f32, muted: bool) -> anyhow::Result<tray_icon:
 }
 
 impl Tray {
+    /// Refresh every menu label and the language check marks for the active language.
+    pub fn apply_language(&self) {
+        let s = i18n::strings();
+        self.about_item.set_text(s.menu_about);
+        self.autostart_item.set_text(s.menu_autostart);
+        self.softvol_item.set_text(s.menu_softvol);
+        self.night_item.set_text(s.menu_night);
+        self.volcap_submenu.set_text(s.menu_volcap);
+        self.sv_submenu.set_text(s.menu_startup_vol);
+        self.lang_submenu.set_text(s.menu_language);
+        self.quit_item.set_text(s.menu_quit);
+        let active = i18n::lang();
+        for (item, (_, lang)) in self.lang_items.iter().zip(self.lang_ids.iter()) {
+            item.set_checked(*lang == active);
+        }
+    }
+
     pub fn update_icon(&self, icon: tray_icon::Icon) -> anyhow::Result<()> {
         self._icon.set_icon(Some(icon))?;
         Ok(())
