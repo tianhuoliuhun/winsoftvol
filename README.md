@@ -83,6 +83,7 @@ WinSoftVol fixes this. It sits in the system tray, watches the endpoint for chan
 - 🔊 Dynamic tray icon — volume bar overlaid on the icon updates in real time; bar turns red when muted; tooltip shows current volume percentage and active cap.
 - ⚠️ Exclusive mode detection — detects when a game or DAW bypasses the session mixer and notifies you why volume control stops working for that app.
 - ℹ️ About dialog with version, build commit hash, build timestamp, links to the project homepage and GitHub Sponsors, and a download link when a newer version is available.
+- 🌐 Localization — English, Simplified Chinese (`zh-CN`) and Traditional Chinese (`zh-TW`) UI; detected from the Windows display language or set explicitly via `language` in `config.toml`.
 - 🦀 Written in Rust — small binary, no runtime, minimal resource usage.
 
 ## 💼 Requirements
@@ -171,6 +172,7 @@ cap_presets          = [100, 80, 60, 40]   # presets shown in tray Max volume su
 scroll_step_percent  = 2                   # % per scroll notch (1–20)
 startup_volume       = 50                  # set to 50% on launch; omit to leave unchanged
 pin_device           = "Speakers (USB Audio Device)"  # omit to use Windows default device
+language             = "zh-CN"             # UI language: "en", "zh-CN" or "zh-TW"; omit to auto-detect
 
 # Night mode: lower cap automatically on a schedule
 night_start          = "22:00"
@@ -195,6 +197,7 @@ cap_percent     = 60
 | `general.scroll_step_percent` | `2` | Volume change per scroll notch in % (1–20) |
 | `general.startup_volume` | _(absent)_ | Volume to apply on each launch in % (0–100); omit to leave unchanged |
 | `general.pin_device` | _(absent)_ | Friendly name of device to target; omit to use Windows default |
+| `general.language` | _(absent)_ | UI language: `en`, `zh-CN` or `zh-TW`; omit to auto-detect from the Windows display language. Changes apply after restarting WinSoftVol |
 | `general.night_start` | _(absent)_ | Night mode start time (HH:MM); both `night_start` and `night_end` required |
 | `general.night_end` | _(absent)_ | Night mode end time (HH:MM); wraps midnight (e.g. 22:00 → 07:00) |
 | `general.night_cap` | `40` | Volume cap applied during night window (10–100) |

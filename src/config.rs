@@ -59,6 +59,8 @@ pub struct GeneralConfig {
     pub startup_volume: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pin_device: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
 }
 
 impl Default for GeneralConfig {
@@ -73,6 +75,7 @@ impl Default for GeneralConfig {
             night_enabled: true,
             startup_volume: None,
             pin_device: None,
+            language: None,
         }
     }
 }
@@ -239,6 +242,7 @@ impl Config {
                 night_enabled: true,
                 startup_volume: None,
                 pin_device: None,
+                language: None,
             },
             default: DeviceConfig {
                 force_sw_volume: force_sw != 0,
@@ -500,6 +504,18 @@ cap_percent = 60
     fn startup_volume_missing_from_toml_is_none() {
         let cfg: Config = toml::from_str("[general]\nautostart = false\n").unwrap();
         assert!(cfg.general.startup_volume.is_none());
+    }
+
+    #[test]
+    fn language_missing_from_toml_is_none() {
+        let cfg: Config = toml::from_str("[general]\nautostart = false\n").unwrap();
+        assert!(cfg.general.language.is_none());
+    }
+
+    #[test]
+    fn language_parses_from_toml() {
+        let cfg: Config = toml::from_str("[general]\nlanguage = \"zh-TW\"\n").unwrap();
+        assert_eq!(cfg.general.language.as_deref(), Some("zh-TW"));
     }
 
     #[test]

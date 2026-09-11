@@ -7,6 +7,7 @@ mod audio;
 #[cfg(windows)]
 mod autostart;
 mod config;
+mod i18n;
 #[cfg(windows)]
 mod notification;
 mod tray;
@@ -111,6 +112,7 @@ fn run() -> anyhow::Result<()> {
     updater::spawn_update_checker(Arc::clone(&update_state));
 
     let initial_cfg = config::Config::load();
+    i18n::set(i18n::resolve(initial_cfg.general.language.as_deref()));
     let init_dev_cfg = active_device_config(&initial_cfg);
     let softvol_flag = Arc::new(AtomicBool::new(init_dev_cfg.force_sw_volume));
     let cap_flag = Arc::new(AtomicU32::new(init_dev_cfg.cap_percent));
@@ -188,11 +190,7 @@ fn run() -> anyhow::Result<()> {
                 if let Ok(icon) = tray::render_volume_icon(vol, muted) {
                     let _ = tray_state.update_icon(icon);
                 }
-                let tooltip = if muted {
-                    format!("Muted | cap: {cap}%")
-                } else {
-                    format!("{pct}% | cap: {cap}%")
-                };
+                let tooltip = i18n::strings().tooltip(pct, cap, muted);
                 tray_state.set_tooltip(&tooltip);
             }
         }

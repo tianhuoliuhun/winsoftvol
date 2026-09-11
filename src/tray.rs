@@ -1,6 +1,8 @@
 use muda::{CheckMenuItem, IsMenuItem, Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu};
 use tray_icon::{TrayIcon, TrayIconBuilder};
 
+use crate::i18n;
+
 const ICON: &[u8] = include_bytes!("../assets/icon.png");
 
 pub struct Tray {
@@ -27,12 +29,12 @@ pub fn build_tray(
     cap_presets: &[u32],
     startup_volume: Option<u32>,
 ) -> anyhow::Result<Tray> {
-    let about_item = MenuItem::new("About WinSoftVol", true, None);
-    let autostart_item =
-        CheckMenuItem::new("Start on Windows startup", true, autostart_enabled, None);
-    let softvol_item = CheckMenuItem::new("Force software volume", true, softvol_enabled, None);
-    let night_item = CheckMenuItem::new("Night mode", true, night_enabled, None);
-    let quit_item = MenuItem::new("Quit WinSoftVol", true, None);
+    let s = i18n::strings();
+    let about_item = MenuItem::new(s.menu_about, true, None);
+    let autostart_item = CheckMenuItem::new(s.menu_autostart, true, autostart_enabled, None);
+    let softvol_item = CheckMenuItem::new(s.menu_softvol, true, softvol_enabled, None);
+    let night_item = CheckMenuItem::new(s.menu_night, true, night_enabled, None);
+    let quit_item = MenuItem::new(s.menu_quit, true, None);
 
     let about_id = about_item.id().clone();
     let autostart_id = autostart_item.id().clone();
@@ -51,10 +53,10 @@ pub fn build_tray(
     }
     let volcap_dyn: Vec<&dyn IsMenuItem> =
         volcap_items.iter().map(|i| i as &dyn IsMenuItem).collect();
-    let volcap_submenu = Submenu::with_items("Max volume", true, &volcap_dyn)?;
+    let volcap_submenu = Submenu::with_items(s.menu_volcap, true, &volcap_dyn)?;
 
     // Startup volume submenu — "Off" + same presets as cap
-    let off_item = CheckMenuItem::new("Off", true, startup_volume.is_none(), None);
+    let off_item = CheckMenuItem::new(s.menu_off, true, startup_volume.is_none(), None);
     let mut startup_vol_ids: Vec<(MenuId, Option<u32>)> = vec![(off_item.id().clone(), None)];
     let mut startup_vol_items: Vec<CheckMenuItem> = vec![off_item];
     for &pct in cap_presets {
@@ -67,7 +69,7 @@ pub fn build_tray(
         .iter()
         .map(|i| i as &dyn IsMenuItem)
         .collect();
-    let sv_submenu = Submenu::with_items("Startup volume", true, &sv_dyn)?;
+    let sv_submenu = Submenu::with_items(s.menu_startup_vol, true, &sv_dyn)?;
 
     let menu = Menu::new();
     menu.append(&about_item)?;
@@ -87,7 +89,7 @@ pub fn build_tray(
     let tray = TrayIconBuilder::new()
         .with_menu(Box::new(menu))
         .with_menu_on_left_click(false)
-        .with_tooltip("WinSoftVol — active")
+        .with_tooltip(s.tooltip_active)
         .with_icon(icon)
         .build()?;
 

@@ -2,12 +2,13 @@
 name = "winsoftvol"
 version = "0.3.2"
 edition = "2021"
-description = "Makes system volume controls work on USB audio devices without hardware volume control"
+description = "让系统音量控制在没有硬件音量控制的 USB 音频设备上正常工作"
 authors = ["Jeffrey Tse <jeffreytse.mail@gmail.com>"]
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.52", features = [
     "Win32_Foundation",
+    "Win32_Globalization",
     "Win32_Media_Audio",
     "Win32_Media_Audio_Endpoints",
     "Win32_System_Com",
