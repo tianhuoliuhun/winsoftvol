@@ -1,8 +1,8 @@
 [package]
 name = "winsoftvol"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
-description = "让系统音量控制在没有硬件音量控制的 USB 音频设备上正常工作"
+description = "软音桥 · 让系统音量控制在没有硬件音量控制的 USB 音频设备上正常工作"
 authors = ["Jeffrey Tse <jeffreytse.mail@gmail.com>"]
 
 [target.'cfg(windows)'.dependencies]
