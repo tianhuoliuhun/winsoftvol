@@ -1,28 +1,33 @@
 <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bridgeArch" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#1d95f5"/>
-      <stop offset="100%" stop-color="#29c5f6"/>
+    <linearGradient id="hp4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6EE7D7"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
     </linearGradient>
   </defs>
 
-  <!-- Background -->
-  <rect width="256" height="256" fill="#0d1117" rx="40"/>
+  <!-- headband -->
+  <path d="M56 130 Q56 46 128 46 Q200 46 200 130" stroke="url(#hp4)" stroke-width="18" fill="none" stroke-linecap="round"/>
 
-  <!-- Bridge arch -->
-  <path d="M 74,120 Q 128,48 182,120"
-        stroke="url(#bridgeArch)" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <!-- left earcup -->
+  <rect x="38" y="118" width="58" height="76" rx="24" fill="url(#hp4)"/>
+  <!-- right earcup -->
+  <rect x="160" y="118" width="58" height="76" rx="24" fill="url(#hp4)"/>
 
-  <!-- Left pillar: hardware -->
-  <rect x="52" y="120" width="44" height="76" rx="12" fill="#1d95f5"/>
+  <!-- left earcup face (closed happy eye + blush) -->
+  <path d="M52 152 Q60 144 68 152" stroke="#FFFFFF" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <ellipse cx="58" cy="170" rx="7" ry="4" fill="#FFB3C6" opacity="0.9"/>
 
-  <!-- Right pillar: software -->
-  <rect x="160" y="120" width="44" height="76" rx="12" fill="#29c5f6"/>
+  <!-- right earcup face (round eyes + blush) -->
+  <circle cx="180" cy="150" r="5.5" fill="#FFFFFF"/>
+  <circle cx="194" cy="150" r="5.5" fill="#FFFFFF"/>
+  <ellipse cx="187" cy="170" rx="7" ry="4" fill="#FFB3C6" opacity="0.9"/>
 
-  <!-- Signal dots -->
-  <g fill="#e6edf3">
-    <circle cx="104" cy="168" r="5"/>
-    <circle cx="128" cy="168" r="5"/>
-    <circle cx="152" cy="168" r="5"/>
-  </g>
+  <!-- volume slider between cups -->
+  <rect x="104" y="140" width="48" height="8" rx="4" fill="#D6FBF4"/>
+  <rect x="104" y="140" width="32" height="8" rx="4" fill="#FFFFFF"/>
+  <circle cx="140" cy="144" r="7" fill="#FFFFFF"/>
+
+  <!-- top sparkle -->
+  <path d="M128 24 L131 32 L139 33 L133 39 L135 47 L128 42 L121 47 L123 39 L117 33 L125 32 Z" fill="#FDE68A"/>
 </svg>
