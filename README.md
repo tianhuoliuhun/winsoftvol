@@ -90,11 +90,11 @@ WinSoftVol fixes this. It sits in the system tray, watches the endpoint for chan
 
 ## 💼 Requirements
 
-- Windows 10 or later (x64 or ARM64)
+- Windows 10 or later (x86, x64 or ARM64)
 
 ## 📦 Installation
 
-1. Download the latest `winsoftvol-vX.Y.Z-<hash>.exe` (x64) or `winsoftvol-vX.Y.Z-<hash>-arm64.exe` (Windows on ARM) from the [Releases](https://github.com/jeffreytse/winsoftvol/releases) page.
+1. Download the latest build for your architecture from the [Releases](https://github.com/jeffreytse/winsoftvol/releases) page: `winsoftvol-vX.Y.Z-<hash>.exe` (x64), `winsoftvol-vX.Y.Z-<hash>-x86.exe` (32-bit) or `winsoftvol-vX.Y.Z-<hash>-arm64.exe` (Windows on ARM).
 2. Run it. A speaker icon appears in the system tray.
 3. Optional: right-click the tray icon → **Start on Windows startup** to enable autostart.
 
@@ -228,10 +228,17 @@ make setup   # installs rustup target x86_64-pc-windows-gnu + mingw-w64
 make         # produces dist/winsoftvol-v<version>-<hash>.exe
 ```
 
-#### Windows — native build
+#### Windows — native build (x64)
 
 ```sh
 cargo build --release
+```
+
+#### Windows x86 (32-bit)
+
+```sh
+rustup target add i686-pc-windows-msvc
+cargo build --release --target i686-pc-windows-msvc
 ```
 
 #### Windows on ARM64 — cross-compile from an x64 host

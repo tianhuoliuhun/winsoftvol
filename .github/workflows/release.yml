@@ -15,10 +15,13 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-pc-windows-msvc
+          targets: i686-pc-windows-msvc, aarch64-pc-windows-msvc
 
       - name: Build (x64)
         run: cargo build --release
+
+      - name: Build (x86)
+        run: cargo build --release --target i686-pc-windows-msvc
 
       - name: Build (ARM64)
         run: cargo build --release --target aarch64-pc-windows-msvc
@@ -29,8 +32,10 @@ jobs:
           VERSION="${{ github.ref_name }}"
           HASH=$(git rev-parse --short HEAD)
           cp target/release/winsoftvol.exe "winsoftvol-${VERSION}-${HASH}.exe"
+          cp target/i686-pc-windows-msvc/release/winsoftvol.exe "winsoftvol-${VERSION}-${HASH}-x86.exe"
           cp target/aarch64-pc-windows-msvc/release/winsoftvol.exe "winsoftvol-${VERSION}-${HASH}-arm64.exe"
           echo "ASSET_X64=winsoftvol-${VERSION}-${HASH}.exe" >> $GITHUB_ENV
+          echo "ASSET_X86=winsoftvol-${VERSION}-${HASH}-x86.exe" >> $GITHUB_ENV
           echo "ASSET_ARM64=winsoftvol-${VERSION}-${HASH}-arm64.exe" >> $GITHUB_ENV
 
       - name: Create GitHub Release
@@ -38,5 +43,6 @@ jobs:
         with:
           files: |
             ${{ env.ASSET_X64 }}
+            ${{ env.ASSET_X86 }}
             ${{ env.ASSET_ARM64 }}
           generate_release_notes: true
