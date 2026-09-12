@@ -14,21 +14,29 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-pc-windows-msvc
 
-      - name: Build
+      - name: Build (x64)
         run: cargo build --release
+
+      - name: Build (ARM64)
+        run: cargo build --release --target aarch64-pc-windows-msvc
 
       - name: Package
         shell: bash
         run: |
           VERSION="${{ github.ref_name }}"
           HASH=$(git rev-parse --short HEAD)
-          ASSET="winsoftvol-${VERSION}-${HASH}.exe"
-          cp target/release/winsoftvol.exe "${ASSET}"
-          echo "ASSET=${ASSET}" >> $GITHUB_ENV
+          cp target/release/winsoftvol.exe "winsoftvol-${VERSION}-${HASH}.exe"
+          cp target/aarch64-pc-windows-msvc/release/winsoftvol.exe "winsoftvol-${VERSION}-${HASH}-arm64.exe"
+          echo "ASSET_X64=winsoftvol-${VERSION}-${HASH}.exe" >> $GITHUB_ENV
+          echo "ASSET_ARM64=winsoftvol-${VERSION}-${HASH}-arm64.exe" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ env.ASSET }}
+          files: |
+            ${{ env.ASSET_X64 }}
+            ${{ env.ASSET_ARM64 }}
           generate_release_notes: true
