@@ -1,43 +1,28 @@
 <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="spk" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="bridgeArch" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0%" stop-color="#1d95f5"/>
-      <stop offset="100%" stop-color="#005bb5"/>
+      <stop offset="100%" stop-color="#29c5f6"/>
     </linearGradient>
   </defs>
 
   <!-- Background -->
   <rect width="256" height="256" fill="#0d1117" rx="40"/>
 
-  <!--
-    Unified speaker body: enclosure (rounded left) + cone (convex bezier sides).
-    Cone sides bow outward via Q control points — organic membrane feel.
-  -->
-  <path d="
-    M 71,86
-    L 36,86
-    Q 31,86 31,91
-    L 31,133
-    Q 31,138 36,138
-    L 71,138
-    Q 111,158 151,163
-    L 151,61
-    Q 111,66 71,86
-    Z
-  " fill="url(#spk)"/>
+  <!-- Bridge arch -->
+  <path d="M 74,120 Q 128,48 182,120"
+        stroke="url(#bridgeArch)" stroke-width="14" fill="none" stroke-linecap="round"/>
 
-  <!-- Sound waves -->
-  <path d="M 159,96 A 22,22 0 0,1 159,128"
-        stroke="#29c5f6" stroke-width="5" fill="none" stroke-linecap="round"/>
-  <path d="M 173,80 A 37,37 0 0,1 173,144"
-        stroke="#29c5f6" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-  <path d="M 187,62 A 52,52 0 0,1 187,162"
-        stroke="#29c5f6" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Left pillar: hardware -->
+  <rect x="52" y="120" width="44" height="76" rx="12" fill="#1d95f5"/>
 
-  <!-- Volume slider track -->
-  <rect x="31" y="184" width="180" height="6" fill="#21262d" rx="3"/>
-  <!-- Volume fill (~75%) -->
-  <rect x="31" y="184" width="135" height="6" fill="#29c5f6" rx="3"/>
-  <!-- Slider knob -->
-  <circle cx="166" cy="187" r="8" fill="#e6edf3"/>
+  <!-- Right pillar: software -->
+  <rect x="160" y="120" width="44" height="76" rx="12" fill="#29c5f6"/>
+
+  <!-- Signal dots -->
+  <g fill="#e6edf3">
+    <circle cx="104" cy="168" r="5"/>
+    <circle cx="128" cy="168" r="5"/>
+    <circle cx="152" cy="168" r="5"/>
+  </g>
 </svg>
