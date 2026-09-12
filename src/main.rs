@@ -7,8 +7,11 @@ mod audio;
 #[cfg(windows)]
 mod autostart;
 mod config;
+mod i18n;
 #[cfg(windows)]
 mod notification;
+#[cfg(windows)]
+mod single_instance;
 mod tray;
 #[cfg(windows)]
 mod updater;
@@ -105,23 +108,88 @@ fn run() -> anyhow::Result<()> {
         },
     };
 
+    /// Output devices with their allow-list check state, for the tray menu.
+    fn device_menu_state(cfg: &config::Config) -> Vec<(String, bool)> {
+        audio::list_output_device_names()
+            .into_iter()
+            .map(|name| {
+                let checked = cfg.device_allowed(&name);
+                (name, checked)
+            })
+            .collect()
+    }
+
+    /// Create the audio bridge when the target device is allowed by the
+    /// config. Returns `(bridge, target_missing)`.
+    fn create_bridge(
+        cfg: &config::Config,
+        softvol: Arc<AtomicBool>,
+        cap: Arc<AtomicU32>,
+    ) -> (Option<audio::AudioBridge>, bool) {
+        let pin = cfg.general.pin_device.as_deref();
+        match audio::target_device_name(pin) {
+            Some(target) => {
+                let bridge = if cfg.device_allowed(&target) {
+                    audio::AudioBridge::new(softvol, cap, pin).ok()
+                } else {
+                    None
+                };
+                (bridge, false)
+            }
+            None => (None, true),
+        }
+    }
+
+    /// Toggle a device in the allow list. `None` means "all devices allowed";
+    /// toggling expands it to an explicit list first.
+    fn toggle_device(cfg: &mut config::Config, name: &str) {
+        let all = audio::list_output_device_names();
+        let mut list = match cfg.general.devices.take() {
+            None => all.clone(),
+            Some(list) => list,
+        };
+        if list.iter().any(|d| d == name) {
+            list.retain(|d| d != name);
+        } else {
+            list.push(name.to_string());
+        }
+        // Collapse back to `None` when every device is allowed again.
+        cfg.general.devices = if list.len() == all.len() && all.iter().all(|d| list.contains(d)) {
+            None
+        } else {
+            Some(list)
+        };
+    }
+
     notification::register_aumid();
+
+    // Load the config first so the active language is available for early
+    // notifications (such as the single-instance warning below).
+    let initial_cfg = config::Config::load();
+    i18n::set(i18n::resolve(initial_cfg.general.language.as_deref()));
+
+    // Only one instance may run at a time: two instances would both apply
+    // endpoint volume changes to the session volumes, doubling the scaling.
+    if !single_instance::acquire() {
+        notification::show_already_running();
+        return Ok(());
+    }
 
     let update_state: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
     updater::spawn_update_checker(Arc::clone(&update_state));
 
-    let initial_cfg = config::Config::load();
     let init_dev_cfg = active_device_config(&initial_cfg);
     let softvol_flag = Arc::new(AtomicBool::new(init_dev_cfg.force_sw_volume));
     let cap_flag = Arc::new(AtomicU32::new(init_dev_cfg.cap_percent));
     let scroll_step = Arc::new(AtomicU32::new(initial_cfg.general.scroll_step_percent));
-    let tray_state = tray::build_tray(
+    let mut tray_state = tray::build_tray(
         initial_cfg.general.autostart,
         init_dev_cfg.force_sw_volume,
         initial_cfg.general.night_enabled,
         init_dev_cfg.cap_percent,
         &initial_cfg.general.cap_presets,
         initial_cfg.general.startup_volume,
+        &device_menu_state(&initial_cfg),
     )?;
     let cfg_state = Arc::new(RwLock::new(initial_cfg));
 
@@ -133,11 +201,10 @@ fn run() -> anyhow::Result<()> {
 
     let watcher = audio::DeviceWatcher::new()?;
     let mut bridge: Option<audio::AudioBridge> = {
-        let pin = cfg_state.read().unwrap().general.pin_device.clone();
-        let b =
-            audio::AudioBridge::new(softvol_flag.clone(), cap_flag.clone(), pin.as_deref()).ok();
-        if b.is_none() {
-            if let Some(ref name) = pin {
+        let cfg = cfg_state.read().unwrap();
+        let (b, target_missing) = create_bridge(&cfg, softvol_flag.clone(), cap_flag.clone());
+        if b.is_none() && target_missing {
+            if let Some(ref name) = cfg.general.pin_device {
                 notification::show_device_not_found(name);
             }
         }
@@ -188,11 +255,7 @@ fn run() -> anyhow::Result<()> {
                 if let Ok(icon) = tray::render_volume_icon(vol, muted) {
                     let _ = tray_state.update_icon(icon);
                 }
-                let tooltip = if muted {
-                    format!("Muted | cap: {cap}%")
-                } else {
-                    format!("{pct}% | cap: {cap}%")
-                };
+                let tooltip = i18n::strings().tooltip(pct, cap, muted);
                 tray_state.set_tooltip(&tooltip);
             }
         }
@@ -265,6 +328,8 @@ fn run() -> anyhow::Result<()> {
                         last_config_mtime = Some(mtime);
                         match config::Config::try_load() {
                             Ok(new_cfg) => {
+                                let devices_changed = new_cfg.general.devices
+                                    != cfg_state.read().unwrap().general.devices;
                                 let dev_cfg = active_device_config(&new_cfg);
                                 softvol_flag.store(dev_cfg.force_sw_volume, Ordering::Relaxed);
                                 cap_flag.store(dev_cfg.cap_percent, Ordering::Relaxed);
@@ -277,6 +342,14 @@ fn run() -> anyhow::Result<()> {
                                 tray_state.set_volcap(dev_cfg.cap_percent);
                                 tray_state.set_night(new_cfg.general.night_enabled);
                                 tray_state.set_startup_vol(new_cfg.general.startup_volume);
+                                // Apply a language change coming from the config file.
+                                let new_lang =
+                                    i18n::resolve(new_cfg.general.language.as_deref());
+                                if new_lang != i18n::lang() {
+                                    i18n::set(new_lang);
+                                    tray_state.apply_language();
+                                    last_display = None;
+                                }
                                 in_night_mode = false;
                                 let old_autostart = cfg_state.read().unwrap().general.autostart;
                                 if new_cfg.general.autostart != old_autostart {
@@ -284,6 +357,23 @@ fn run() -> anyhow::Result<()> {
                                     tray_state.set_autostart(new_cfg.general.autostart);
                                 }
                                 *cfg_state.write().unwrap() = new_cfg;
+                                if devices_changed {
+                                    // The device allow list changed: re-evaluate the
+                                    // bridge and refresh the device menu.
+                                    drop(bridge.take());
+                                    {
+                                        let cfg = cfg_state.read().unwrap();
+                                        let (b, _) = create_bridge(
+                                            &cfg,
+                                            softvol_flag.clone(),
+                                            cap_flag.clone(),
+                                        );
+                                        bridge = b;
+                                    }
+                                    tray_state.set_devices(&device_menu_state(
+                                        &cfg_state.read().unwrap(),
+                                    ));
+                                }
                             }
                             Err(e) => {
                                 notification::show_config_error(&e.to_string());
@@ -296,15 +386,21 @@ fn run() -> anyhow::Result<()> {
 
         if watcher.check() {
             drop(bridge.take());
-            let pin = cfg_state.read().unwrap().general.pin_device.clone();
-            bridge =
-                audio::AudioBridge::new(softvol_flag.clone(), cap_flag.clone(), pin.as_deref())
-                    .ok();
-            if bridge.is_some() {
-                notification::show_device_reconnected();
-            } else if let Some(ref name) = pin {
-                notification::show_device_not_found(name);
+            {
+                let cfg = cfg_state.read().unwrap();
+                let (b, target_missing) =
+                    create_bridge(&cfg, softvol_flag.clone(), cap_flag.clone());
+                bridge = b;
+                if bridge.is_some() {
+                    notification::show_device_reconnected();
+                } else if target_missing {
+                    if let Some(ref name) = cfg.general.pin_device {
+                        notification::show_device_not_found(name);
+                    }
+                }
             }
+            // The set of output devices may have changed; refresh the menu.
+            tray_state.set_devices(&device_menu_state(&cfg_state.read().unwrap()));
         }
 
         while let Ok(event) = tray_icon::TrayIconEvent::receiver().try_recv() {
@@ -384,20 +480,64 @@ fn run() -> anyhow::Result<()> {
                 }
             } else {
                 let mut handled = false;
-                for (id, pct) in &tray_state.volcap_ids {
+                // Language selection: switch immediately and persist the choice.
+                for (id, lang) in &tray_state.lang_ids {
                     if event.id() == id {
-                        cap_flag.store(*pct, Ordering::Relaxed);
-                        if let Some(ref b) = bridge {
-                            let _ = b.apply_cap();
+                        if *lang != i18n::lang() {
+                            i18n::set(*lang);
+                            {
+                                let mut cfg = cfg_state.write().unwrap();
+                                cfg.general.language = Some(lang.code().to_string());
+                                let _ = cfg.save();
+                            }
+                            tray_state.apply_language();
+                            // Force the tooltip to be regenerated in the new language.
+                            last_display = None;
                         }
-                        {
-                            let mut cfg = cfg_state.write().unwrap();
-                            cfg.default.cap_percent = *pct;
-                            let _ = cfg.save();
-                        }
-                        tray_state.set_volcap(*pct);
                         handled = true;
                         break;
+                    }
+                }
+                if !handled {
+                    let toggled = tray_state
+                        .device_ids
+                        .iter()
+                        .find(|(id, _)| event.id() == id)
+                        .map(|(_, name)| name.clone());
+                    if let Some(name) = toggled {
+                        {
+                            let mut cfg = cfg_state.write().unwrap();
+                            toggle_device(&mut cfg, &name);
+                            let _ = cfg.save();
+                        }
+                        tray_state
+                            .set_devices(&device_menu_state(&cfg_state.read().unwrap()));
+                        drop(bridge.take());
+                        {
+                            let cfg = cfg_state.read().unwrap();
+                            let (b, _) =
+                                create_bridge(&cfg, softvol_flag.clone(), cap_flag.clone());
+                            bridge = b;
+                        }
+                        handled = true;
+                    }
+                }
+                if !handled {
+                    for (id, pct) in &tray_state.volcap_ids {
+                        if event.id() == id {
+                            cap_flag.store(*pct, Ordering::Relaxed);
+                            if let Some(ref b) = bridge {
+                                let _ = b.apply_cap();
+                            }
+                            {
+                                let mut cfg = cfg_state.write().unwrap();
+                                cfg.default.cap_percent = *pct;
+                                let _ = cfg.save();
+                            }
+                            tray_state.set_volcap(*pct);
+                            handled = true;
+                            break;
+                        }
                     }
                 }
                 if !handled {

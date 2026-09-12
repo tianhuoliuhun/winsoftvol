@@ -1,3 +1,5 @@
+use crate::i18n;
+
 fn null_terminated_utf16(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(Some(0)).collect()
 }
@@ -71,23 +73,26 @@ pub fn show_about(latest_version: Option<&str>) {
     const HOMEPAGE: &str = "https://github.com/jeffreytse/winsoftvol";
     const SPONSOR: &str = "https://github.com/sponsors/jeffreytse";
 
+    let s = i18n::strings();
     let update_line = latest_version
         .map(|tag| {
             let url = format!("https://github.com/jeffreytse/winsoftvol/releases/tag/{tag}");
-            format!("\n\n<a href=\"{url}\">\u{1F195} New version {tag} available \u{2014} click to download</a>")
+            s.about_update(&url, tag)
         })
         .unwrap_or_default();
 
-    let content = format!(
-        "v{} ({})\n{}\n\nAuthor:  {}\nBuilt:   {}\n\n<a href=\"{HOMEPAGE}\">Project Homepage</a>\n\nIf you find WinSoftVol useful, please consider supporting its development.\n<a href=\"{SPONSOR}\">Sponsor on GitHub \u{2665}</a>{update_line}",
+    let content = s.about_body(
         env!("CARGO_PKG_VERSION"),
         env!("GIT_HASH"),
         env!("CARGO_PKG_DESCRIPTION"),
         env!("CARGO_PKG_AUTHORS"),
         env!("BUILD_TIME"),
+        HOMEPAGE,
+        SPONSOR,
+        &update_line,
     );
 
-    let title_w = null_terminated_utf16("About WinSoftVol");
+    let title_w = null_terminated_utf16(s.about_title);
     let content_w = null_terminated_utf16(&content);
 
     let hicon = unsafe {

@@ -1,6 +1,8 @@
 use muda::{CheckMenuItem, IsMenuItem, Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu};
 use tray_icon::{TrayIcon, TrayIconBuilder};
 
+use crate::i18n;
+
 const ICON: &[u8] = include_bytes!("../assets/icon.png");
 
 pub struct Tray {
@@ -11,11 +13,21 @@ pub struct Tray {
     pub night_id: MenuId,
     pub volcap_ids: Vec<(MenuId, u32)>,
     pub startup_vol_ids: Vec<(MenuId, Option<u32>)>,
+    pub lang_ids: Vec<(MenuId, i18n::Lang)>,
+    pub device_ids: Vec<(MenuId, String)>,
+    about_item: MenuItem,
     autostart_item: CheckMenuItem,
     softvol_item: CheckMenuItem,
     night_item: CheckMenuItem,
+    volcap_submenu: Submenu,
+    sv_submenu: Submenu,
+    lang_submenu: Submenu,
+    devices_submenu: Submenu,
     volcap_items: Vec<CheckMenuItem>,
     startup_vol_items: Vec<CheckMenuItem>,
+    lang_items: Vec<CheckMenuItem>,
+    device_items: Vec<CheckMenuItem>,
+    quit_item: MenuItem,
     pub quit_id: MenuId,
 }
 
@@ -26,13 +38,14 @@ pub fn build_tray(
     volcap_percent: u32,
     cap_presets: &[u32],
     startup_volume: Option<u32>,
+    devices: &[(String, bool)],
 ) -> anyhow::Result<Tray> {
-    let about_item = MenuItem::new("About WinSoftVol", true, None);
-    let autostart_item =
-        CheckMenuItem::new("Start on Windows startup", true, autostart_enabled, None);
-    let softvol_item = CheckMenuItem::new("Force software volume", true, softvol_enabled, None);
-    let night_item = CheckMenuItem::new("Night mode", true, night_enabled, None);
-    let quit_item = MenuItem::new("Quit WinSoftVol", true, None);
+    let s = i18n::strings();
+    let about_item = MenuItem::new(s.menu_about, true, None);
+    let autostart_item = CheckMenuItem::new(s.menu_autostart, true, autostart_enabled, None);
+    let softvol_item = CheckMenuItem::new(s.menu_softvol, true, softvol_enabled, None);
+    let night_item = CheckMenuItem::new(s.menu_night, true, night_enabled, None);
+    let quit_item = MenuItem::new(s.menu_quit, true, None);
 
     let about_id = about_item.id().clone();
     let autostart_id = autostart_item.id().clone();
@@ -51,10 +64,10 @@ pub fn build_tray(
     }
     let volcap_dyn: Vec<&dyn IsMenuItem> =
         volcap_items.iter().map(|i| i as &dyn IsMenuItem).collect();
-    let volcap_submenu = Submenu::with_items("Max volume", true, &volcap_dyn)?;
+    let volcap_submenu = Submenu::with_items(s.menu_volcap, true, &volcap_dyn)?;
 
     // Startup volume submenu — "Off" + same presets as cap
-    let off_item = CheckMenuItem::new("Off", true, startup_volume.is_none(), None);
+    let off_item = CheckMenuItem::new(s.menu_off, true, startup_volume.is_none(), None);
     let mut startup_vol_ids: Vec<(MenuId, Option<u32>)> = vec![(off_item.id().clone(), None)];
     let mut startup_vol_items: Vec<CheckMenuItem> = vec![off_item];
     for &pct in cap_presets {
@@ -67,7 +80,31 @@ pub fn build_tray(
         .iter()
         .map(|i| i as &dyn IsMenuItem)
         .collect();
-    let sv_submenu = Submenu::with_items("Startup volume", true, &sv_dyn)?;
+    let sv_submenu = Submenu::with_items(s.menu_startup_vol, true, &sv_dyn)?;
+
+    // Language submenu — one check item per language, labelled in its own language
+    let mut lang_items: Vec<CheckMenuItem> = Vec::new();
+    let mut lang_ids: Vec<(MenuId, i18n::Lang)> = Vec::new();
+    let active_lang = i18n::lang();
+    for lang in i18n::Lang::ALL {
+        let item = CheckMenuItem::new(lang.native_name(), true, lang == active_lang, None);
+        lang_ids.push((item.id().clone(), lang));
+        lang_items.push(item);
+    }
+    let lang_dyn: Vec<&dyn IsMenuItem> = lang_items.iter().map(|i| i as &dyn IsMenuItem).collect();
+    let lang_submenu = Submenu::with_items(s.menu_language, true, &lang_dyn)?;
+
+    // Devices submenu — multi-select allow list of output devices
+    let mut device_items: Vec<CheckMenuItem> = Vec::new();
+    let mut device_ids: Vec<(MenuId, String)> = Vec::new();
+    for (name, checked) in devices {
+        let item = CheckMenuItem::new(name, true, *checked, None);
+        device_ids.push((item.id().clone(), name.clone()));
+        device_items.push(item);
+    }
+    let device_dyn: Vec<&dyn IsMenuItem> =
+        device_items.iter().map(|i| i as &dyn IsMenuItem).collect();
+    let devices_submenu = Submenu::with_items(s.menu_devices, true, &device_dyn)?;
 
     let menu = Menu::new();
     menu.append(&about_item)?;
@@ -75,6 +112,8 @@ pub fn build_tray(
     menu.append(&autostart_item)?;
     menu.append(&softvol_item)?;
     menu.append(&night_item)?;
+    menu.append(&lang_submenu)?;
+    menu.append(&devices_submenu)?;
     menu.append(&volcap_submenu)?;
     menu.append(&sv_submenu)?;
     menu.append(&PredefinedMenuItem::separator())?;
@@ -87,7 +126,7 @@ pub fn build_tray(
     let tray = TrayIconBuilder::new()
         .with_menu(Box::new(menu))
         .with_menu_on_left_click(false)
-        .with_tooltip("WinSoftVol — active")
+        .with_tooltip(s.tooltip_active)
         .with_icon(icon)
         .build()?;
 
@@ -99,11 +138,21 @@ pub fn build_tray(
         night_id,
         volcap_ids,
         startup_vol_ids,
+        lang_ids,
+        device_ids,
+        about_item,
         autostart_item,
         softvol_item,
         night_item,
+        volcap_submenu,
+        sv_submenu,
+        lang_submenu,
+        devices_submenu,
         volcap_items,
         startup_vol_items,
+        lang_items,
+        device_items,
+        quit_item,
         quit_id,
     })
 }
@@ -143,6 +192,39 @@ pub fn render_volume_icon(volume: f32, muted: bool) -> anyhow::Result<tray_icon:
 }
 
 impl Tray {
+    /// Refresh every menu label and the language check marks for the active language.
+    pub fn apply_language(&self) {
+        let s = i18n::strings();
+        self.about_item.set_text(s.menu_about);
+        self.autostart_item.set_text(s.menu_autostart);
+        self.softvol_item.set_text(s.menu_softvol);
+        self.night_item.set_text(s.menu_night);
+        self.volcap_submenu.set_text(s.menu_volcap);
+        self.sv_submenu.set_text(s.menu_startup_vol);
+        self.lang_submenu.set_text(s.menu_language);
+        self.devices_submenu.set_text(s.menu_devices);
+        self.quit_item.set_text(s.menu_quit);
+        let active = i18n::lang();
+        for (item, (_, lang)) in self.lang_items.iter().zip(self.lang_ids.iter()) {
+            item.set_checked(*lang == active);
+        }
+    }
+
+    /// Rebuild the device submenu from the current output device list.
+    pub fn set_devices(&mut self, devices: &[(String, bool)]) {
+        for item in self.device_items.drain(..) {
+            let _ = self.devices_submenu.remove(&item);
+        }
+        self.device_ids.clear();
+        for (name, checked) in devices {
+            let item = CheckMenuItem::new(name, true, *checked, None);
+            if self.devices_submenu.append(&item).is_ok() {
+                self.device_ids.push((item.id().clone(), name.clone()));
+                self.device_items.push(item);
+            }
+        }
+    }
+
     pub fn update_icon(&self, icon: tray_icon::Icon) -> anyhow::Result<()> {
         self._icon.set_icon(Some(icon))?;
         Ok(())

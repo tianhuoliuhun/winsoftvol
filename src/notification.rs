@@ -4,13 +4,11 @@ use windows::{
     UI::Notifications::{ToastNotification, ToastNotificationManager},
 };
 
+use crate::i18n;
+
 const AUMID: &str = "WinSoftVol";
 
 const TITLE_APP: &str = "WinSoftVol";
-const TITLE_EXCLUSIVE: &str = "WinSoftVol — exclusive mode detected";
-const MSG_RECONNECTED: &str = "USB audio device reconnected — volume control restored.";
-const MSG_EXCLUSIVE_START: &str = "An app bypassed the audio mixer. Volume control won't apply to it until it releases the device.";
-const MSG_EXCLUSIVE_END: &str = "Exclusive audio mode ended — volume control restored.";
 
 /// Register AppUserModelId in HKCU so Windows associates toasts with this app.
 /// Must be called once at startup before showing any toast.
@@ -23,22 +21,29 @@ pub fn register_aumid() {
 }
 
 pub fn show_device_reconnected() {
-    let _ = toast(TITLE_APP, MSG_RECONNECTED);
+    let _ = toast(TITLE_APP, i18n::strings().notif_reconnected);
+}
+
+/// Notify the user that another instance is already running; the caller is
+/// expected to exit afterwards.
+pub fn show_already_running() {
+    let _ = toast(TITLE_APP, i18n::strings().notif_already_running);
 }
 
 pub fn show_config_error(msg: &str) {
+    let s = i18n::strings();
     let truncated: String = msg.chars().take(200).collect();
-    let body =
-        format!("config.toml: {truncated}\nPrevious settings kept. Fix the file to apply changes.");
-    let _ = toast("WinSoftVol — Config Error", &body);
+    let body = s.config_error(&truncated);
+    let _ = toast(s.notif_title_config_error, &body);
 }
 
 pub fn show_exclusive_mode_active() {
-    let _ = toast(TITLE_EXCLUSIVE, MSG_EXCLUSIVE_START);
+    let s = i18n::strings();
+    let _ = toast(s.notif_title_exclusive, s.notif_exclusive_start);
 }
 
 pub fn show_exclusive_mode_ended() {
-    let _ = toast(TITLE_APP, MSG_EXCLUSIVE_END);
+    let _ = toast(TITLE_APP, i18n::strings().notif_exclusive_end);
 }
 
 fn build_toast_xml(title: &str, body: &str) -> String {
@@ -60,23 +65,24 @@ fn toast_xml(xml_str: &str) -> Result<()> {
 }
 
 pub fn show_device_not_found(name: &str) {
-    let body = format!("Pinned device \"{name}\" not found — using default audio device.");
-    let _ = toast("WinSoftVol — Device Not Found", &body);
+    let s = i18n::strings();
+    let body = s.device_not_found(name);
+    let _ = toast(s.notif_title_device_not_found, &body);
 }
 
 pub fn show_update_available(tag: &str, url: &str) {
+    let s = i18n::strings();
     let xml = format!(
-        "<toast launch=\"{url}\" activationType=\"protocol\" duration=\"short\"><visual><binding template=\"ToastGeneric\"><text>WinSoftVol Update Available</text><text>{tag} is ready \u{2014} click to open release page</text></binding></visual></toast>"
+        "<toast launch=\"{url}\" activationType=\"protocol\" duration=\"short\"><visual><binding template=\"ToastGeneric\"><text>{}</text><text>{}</text></binding></visual></toast>",
+        s.notif_title_update,
+        s.update_available(tag),
     );
     let _ = toast_xml(&xml);
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        build_toast_xml, AUMID, MSG_EXCLUSIVE_END, MSG_EXCLUSIVE_START, MSG_RECONNECTED,
-        TITLE_EXCLUSIVE,
-    };
+    use super::{build_toast_xml, AUMID};
 
     #[test]
     fn xml_contains_duration_short() {
@@ -123,27 +129,5 @@ mod tests {
     #[test]
     fn aumid_is_winsoftvol() {
         assert_eq!(AUMID, "WinSoftVol");
-    }
-
-    #[test]
-    fn msg_reconnected_mentions_reconnected_and_restored() {
-        assert!(MSG_RECONNECTED.contains("reconnected"));
-        assert!(MSG_RECONNECTED.contains("restored"));
-    }
-
-    #[test]
-    fn msg_exclusive_start_mentions_bypassed() {
-        assert!(MSG_EXCLUSIVE_START.contains("bypassed"));
-    }
-
-    #[test]
-    fn msg_exclusive_end_mentions_ended_and_restored() {
-        assert!(MSG_EXCLUSIVE_END.contains("ended"));
-        assert!(MSG_EXCLUSIVE_END.contains("restored"));
-    }
-
-    #[test]
-    fn title_exclusive_mentions_exclusive() {
-        assert!(TITLE_EXCLUSIVE.contains("exclusive"));
     }
 }
