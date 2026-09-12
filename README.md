@@ -1,9 +1,11 @@
 <div align="center">
   <img alt="WinSoftVol" src="assets/icon.svg" width="110">
 
-  <h1>🔊 WinSoftVol（中文版）</h1>
+  <h1>🔊 软音桥 · WinSoftVol</h1>
 
   <p><b>让 USB 音频设备的系统音量控制正常工作</b></p>
+
+  <p><i>中文名「软音桥」——把系统音量「桥」接到软件层</i></p>
 
   <p>
     <a href="https://opensource.org/licenses/MIT">
