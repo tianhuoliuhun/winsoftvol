@@ -1,5 +1,5 @@
 <div align="center">
-  <img alt="WinSoftVol" src="assets/icon.svg" width="110">
+  <img alt="软音桥 WinSoftVol" src="assets/icon.svg?v=2" width="110">
 
   <h1>🔊 软音桥 · WinSoftVol</h1>
 
