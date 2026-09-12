@@ -52,7 +52,7 @@
 - 🔔 自动检查新版本
 - ⚠️ 独占模式检测（游戏 / DAW 绕过混音器时通知）
 - 🖱️ 托盘滚轮调音量、左键静音、动态音量条图标（静音变红）
-- 🖥️ 支持 **x64** 与 **ARM64**（Windows on ARM）两种架构
+- 🖥️ 支持 **x86（32 位）**、**x64** 与 **ARM64**（Windows on ARM）三种架构
 - 🦀 Rust 编写：单文件绿色程序，无需安装、无需管理员权限
 
 ## 🌐 中文界面说明
@@ -90,12 +90,13 @@ devices = ["耳机 (ASUS USB2.0 Audio)"]
 ## 🖥️ 系统要求
 
 - Windows 10 或更高版本
-- 架构：**x64** 或 **ARM64**（Windows on ARM 原生运行）
+- 架构：**x86（32 位）** / **x64** / **ARM64**（Windows on ARM 原生运行）
 
 ## 📦 获取与使用
 
 1. 从 [Releases](https://github.com/tianhuoliuhun/winsoftvol/releases) 下载对应架构的可执行文件：
    - **x64**：`winsoftvol-vX.Y.Z-<hash>.exe`
+   - **x86（32 位）**：`winsoftvol-vX.Y.Z-<hash>-x86.exe`
    - **ARM64**：`winsoftvol-vX.Y.Z-<hash>-arm64.exe`
 2. 运行后系统托盘出现喇叭图标
 3. 右键托盘图标打开菜单，所有选项一目了然
@@ -132,12 +133,16 @@ cap_percent = 60
 # x64
 cargo build --release
 
+# x86（32 位）
+rustup target add i686-pc-windows-msvc
+cargo build --release --target i686-pc-windows-msvc
+
 # ARM64（在 x64 主机上交叉编译）
 rustup target add aarch64-pc-windows-msvc
 cargo build --release --target aarch64-pc-windows-msvc
 ```
 
-产物分别位于 `target/release/winsoftvol.exe`（x64）和 `target/aarch64-pc-windows-msvc/release/winsoftvol.exe`（ARM64）。
+产物分别位于 `target/release/winsoftvol.exe`（x64）、`target/i686-pc-windows-msvc/release/winsoftvol.exe`（x86）和 `target/aarch64-pc-windows-msvc/release/winsoftvol.exe`（ARM64）。
 
 ## 📖 源码来源与致谢
 
