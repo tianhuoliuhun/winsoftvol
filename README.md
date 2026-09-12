@@ -90,11 +90,11 @@ WinSoftVol fixes this. It sits in the system tray, watches the endpoint for chan
 
 ## 💼 Requirements
 
-- Windows 10 or later (x64)
+- Windows 10 or later (x64 or ARM64)
 
 ## 📦 Installation
 
-1. Download the latest `winsoftvol-vX.Y.Z-<hash>.exe` from the [Releases](https://github.com/jeffreytse/winsoftvol/releases) page.
+1. Download the latest `winsoftvol-vX.Y.Z-<hash>.exe` (x64) or `winsoftvol-vX.Y.Z-<hash>-arm64.exe` (Windows on ARM) from the [Releases](https://github.com/jeffreytse/winsoftvol/releases) page.
 2. Run it. A speaker icon appears in the system tray.
 3. Optional: right-click the tray icon → **Start on Windows startup** to enable autostart.
 
@@ -232,6 +232,13 @@ make         # produces dist/winsoftvol-v<version>-<hash>.exe
 
 ```sh
 cargo build --release
+```
+
+#### Windows on ARM64 — cross-compile from an x64 host
+
+```sh
+rustup target add aarch64-pc-windows-msvc
+cargo build --release --target aarch64-pc-windows-msvc
 ```
 
 ## 🔫 Contributing
